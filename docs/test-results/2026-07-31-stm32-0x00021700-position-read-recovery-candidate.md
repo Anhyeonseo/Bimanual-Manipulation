@@ -1,71 +1,71 @@
-# STM32 0x00021700 position-read recovery candidate
+# STM32 0x00021700 position-read recovery 후보
 
-Date: 2026-07-31
+- 날짜: 2026-07-31
 
-## Incident
+## 사건
 
-During the Stage 7 pregrasp-to-grasp transition, the executor sent no motion
-command because fresh `/joint_states` stopped arriving. The bridge log showed:
+단계 7 pregrasp-to-grasp 전이 중, fresh `/joint_states`가 더 이상
+들어오지 않아 executor가 동작 명령을 보내지 않았다. Bridge log는
+다음을 보였다.
 
-1. a background `GET_STATE` response with `status=2`;
-2. a heartbeat response 8 ms later with `status=0` and `latched=1`;
-3. a second `GET_STATE` failure, after which the host entered its transport
-   fault state.
+1. 백그라운드 `GET_STATE` 응답이 `status=2`
+2. 8 ms 뒤 heartbeat 응답이 `status=0`, `latched=1`
+3. 두 번째 `GET_STATE` 실패, 이후 host가 transport fault 상태로 진입
 
-The heartbeat was not late. An exhausted `Servo_ReadAllPositions()` sweep in
-the background `GET_STATE` path had already latched the MCU stop. The failing
-servo ID existed only in an internal firmware variable, and the host shared one
-consecutive-error counter between heartbeat and feedback traffic.
+heartbeat는 늦지 않았다. 백그라운드 `GET_STATE` 경로의
+`Servo_ReadAllPositions()` sweep이 소진되면서 이미 MCU stop을
+latch한 상태였다. 실패한 서보 ID는 firmware 내부 변수에만
+존재했고, host는 heartbeat와 feedback 트래픽 사이에서 하나의
+연속-오류 counter를 공유하고 있었다.
 
-## Candidate policy
+## 후보 정책
 
 - Firmware identity: `0x00021700`
 - Capabilities: `0x000001FF`
-- New capability bit: `0x00000100`, position-read failure diagnostics
-- A background position sweep still uses the existing per-servo retries.
-- One exhausted background sweep returns a 24-byte `STATE_FEEDBACK` containing:
-  failed servo ID, failure streak, and configured failure limit.
-- A successful complete sweep resets the background failure streak.
-- The MCU latches only after 3 consecutive exhausted background sweeps.
-- Motion-start and motion-final-verification read failures remain immediate
-  fail-closed conditions.
-- The host maintains independent heartbeat and feedback error counters.
-- A reported MCU latch remains an immediate host fault.
+- 새 capability bit: `0x00000100`, position-read failure diagnostics
+- 백그라운드 position sweep은 기존 서보별 재시도를 그대로 사용한다.
+- 백그라운드 sweep이 1회 소진되면 실패한 서보 ID, 실패 연속 횟수,
+  설정된 실패 한계를 담은 24-byte `STATE_FEEDBACK`을 반환한다.
+- 성공적인 전체 sweep은 백그라운드 실패 연속 횟수를 초기화한다.
+- MCU는 연속 3회 백그라운드 sweep 소진 뒤에만 latch한다.
+- 동작 시작과 동작 최종 검증의 읽기 실패는 계속 즉시 fail-closed
+  조건이다.
+- host는 heartbeat와 feedback 오류 counter를 독립적으로 유지한다.
+- 보고된 MCU latch는 계속 즉시 host fault다.
 
-At the configured 5 Hz feedback rate, three failed background periods span
-approximately 0.4 seconds from the first failed response to the third. Because
-each sweep already retries the failing servo three times, latching represents
-nine exhausted per-servo attempts across those three periods.
+설정된 5 Hz feedback rate에서 3회 실패한 백그라운드 주기는 첫 실패
+응답부터 세 번째까지 약 0.4초에 걸쳐 있다. 각 sweep이 이미 실패한
+서보를 3회 재시도하므로, latch는 이 세 주기에 걸쳐 서보별 9회
+소진된 시도를 나타낸다.
 
-## Changed surfaces
+## 변경된 영역
 
-- STM32 version, capability, and failure-limit configuration
-- STM32 background `GET_STATE` failure state machine and diagnostic response
+- STM32 version, capability, failure-limit 설정
+- STM32 백그라운드 `GET_STATE` failure 상태 머신과 diagnostic 응답
 - Host identity gate
-- Host and tool protocol parsing for 20-, 24-, and 32-byte state responses
-- Typed host position-read and stop-latch errors
-- Independent host heartbeat and feedback recovery counters
-- Protocol documentation and regression contracts
+- 20-, 24-, 32-byte state 응답에 대한 host와 tool의 protocol parsing
+- 타입이 지정된 host position-read/stop-latch 오류
+- 독립적인 host heartbeat와 feedback 복구 counter
+- Protocol 문서와 회귀 계약
 
-## Verification
+## 검증
 
-- Python/ROS regression suite: `322 passed`
-- Native actuator C core: `1/1 passed`, warnings treated as errors
-- `single_arm_bridge` local `colcon build`: passed
-- STM32 ARM Release build: passed with no compiler warnings
-- Firmware size: text 30516, data 112, bss 4160, total 34788 bytes
-- Scoped `git diff --check`: passed
+- Python/ROS 회귀 suite: `322 passed`
+- Native actuator C core: `1/1 passed`, warning을 오류로 처리
+- `single_arm_bridge` 로컬 `colcon build`: 통과
+- STM32 ARM Release build: compiler warning 없이 통과
+- Firmware 크기: text 30516, data 112, bss 4160, 총 34788 bytes
+- 표적 `git diff --check`: 통과
 
-Two earlier full-suite invocations failed for test-environment reasons only:
+이전 전체 suite 실행 2회는 시험 환경 문제로만 실패했다.
 
-1. repository root was missing from `PYTHONPATH`;
-2. the freshly built ROS overlay was not sourced.
+1. 저장소 root가 `PYTHONPATH`에 없었음
+2. 새로 빌드한 ROS overlay를 source하지 않았음
 
-After correcting both environment settings, the complete suite passed. Two
-additional transport round-trip tests were then added and the final total
-became 322 passing tests.
+두 환경 설정을 바로잡은 뒤 전체 suite가 통과했다. 이후 transport
+round-trip 시험 2개를 추가해 최종 합계가 322개 통과가 됐다.
 
-## Local build artifacts
+## 로컬 빌드 산출물
 
 - HEX: `/tmp/stm32_g474_single_arm_0x00021700.hex`
 - HEX SHA-256:
@@ -74,21 +74,21 @@ became 322 passing tests.
 - ELF SHA-256:
   `760cb1397d65dcfd208b3dc2f366a8385edcfb63be5984aabc7c5a5a34fffc1a`
 
-## Scope boundary
+## 범위 경계
 
-This candidate was modified, tested, and built locally only. No files were
-transferred to the Pi, the STM32 was not flashed or reset, and no robot motion
-was performed.
+이 후보는 로컬에서만 수정·시험·빌드했다. Pi로 전송한 파일은 없고
+STM32는 flash나 reset을 하지 않았으며 로봇 동작도 수행하지 않았다.
 
-## Required physical gates
+## 필요한 물리 gate
 
-Before motion validation:
+동작 검증 전:
 
-1. transfer the reviewed host files and verified HEX to the Pi with backups;
-2. rebuild `single_arm_bridge` and verify installed-module hashes;
-3. with 12 V off and the arm supported, back up the current STM32 flash;
-4. separately approve and perform exactly one `program verify reset`;
-5. verify firmware, calibration, capability, and heartbeat identity gates;
-6. run READ_ONLY first and confirm physical torque disable;
-7. only then perform a separately approved MOTION_ENABLED no-motion test and
-   controlled position-read fault validation.
+1. 검토한 host 파일과 검증된 HEX를 backup과 함께 Pi로 전송한다.
+2. `single_arm_bridge`를 rebuild하고 설치된 module hash를 검증한다.
+3. 12 V를 끄고 팔을 지지한 상태에서 현재 STM32 flash를 backup한다.
+4. `program verify reset`을 별도로 승인받아 정확히 1회 수행한다.
+5. firmware, calibration, capability, heartbeat identity gate를
+   확인한다.
+6. 먼저 READ_ONLY를 실행해 물리 torque disable을 확인한다.
+7. 그 뒤에만 별도로 승인된 MOTION_ENABLED 무동작 시험과 통제된
+   position-read fault 검증을 수행한다.

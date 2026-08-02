@@ -4,6 +4,7 @@
   "raw_units_per_turn": 4096,
   "turn_urad": 6283185,
   "home_definition": "verified folded physical home; every actuator reports raw 2048",
+  "motion_authorized": true,
   "positive_direction_definition": "the previously verified M direction",
   "joints": [
     {"id": 1, "name": "BASE",       "zero_raw": 2048, "minimum_raw": 2048, "maximum_raw": 2610, "positive_raw_direction":  1, "p_gain": 16},

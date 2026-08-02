@@ -2,7 +2,7 @@
 
 Raspberry Pi 5, ROS 2 Jazzy, STM32G474, 두 대의 SO-ARM101과 세 대의 USB 카메라를 통합하는 멀티카메라 듀얼암 로봇 프로젝트다.
 
-첫 생산 기준선은 왼팔의 재현 가능한 마커펜 Pick and Place다. 오른팔은 현재 물리적으로 정상 동작하며, 왼팔 기준선을 완성한 뒤 같은 단독 수락 gate를 통과시키고 양팔로 통합한다.
+첫 생산 기준선은 왼팔의 재현 가능한 마커펜 Pick and Place다. 오른팔은 방향 검증과 전용 ROS 패키지 구성까지 마쳤고, 왼팔과 같은 단독 수락 gate를 통과시킨 뒤 양팔로 통합한다.
 
 ## 핵심 원칙
 
@@ -15,41 +15,36 @@ Raspberry Pi 5, ROS 2 Jazzy, STM32G474, 두 대의 SO-ARM101과 세 대의 USB �
 
 ## 현재 상태
 
-- 완료 범위: NUCLEO-G474RE 기반 왼팔 STS3215 6축 제어, 단계 6 Top
-  카메라 인식, 단계 7 감독형 Pick/Place 시운전 1회
-- 오른팔: 사용자가 현재 정상 작동을 확인했다. 다음 확장 대상이지만 왼팔과
-  같은 calibration·모델·MoveIt·STM32·반복 실기 gate는 아직 미실행
-- 현재 장착 펌웨어: `0x00021800`; protocol `1`, calibration
-  `0x8AD27897`, capabilities `0x000003FF`
-- 펌웨어: COBS/CRC-32C, acknowledged heartbeat, SAFE_STOP, 물리
-  torque-disable, cooperative motion, 서보 UART frame 재동기화·완전 복구와
-  실패 원인 진단
-- 제어 설정: Shoulder P32/torque 780, Elbow P28/torque 650. 실제 grasp,
-  약 20 mm lift, Place, release, retreat와 q0 복귀 통과
-- ROS 2: Pi bridge의 `/joint_states`, READ_ONLY 차단, MoveIt 표준 Action,
-  commanded gripper hold, fail-closed feedback와 무경고 shutdown 통과
-- 카메라: 3대 MJPEG capture, hot-plug 복구, Top eye-to-hand·table–base
-  등록 통과. 고정 기하에서 배경 2종·조명 3종·반사를 포함한 holdout
-  18장을 승인했고, YOLO11n-OBB 후보 v3가 miss 0%, false positive 0%,
-  중심 p95 5.29 px, yaw p95 2.79 degree를 통과했다.
-- Top OBB Pi runtime: OpenCV DNN 4.10 격리 환경에서 3카메라와 30분
-  동시 실행해 추론 3.989 Hz, p95 86.95 ms, 오류·명령 발행·재연결 0,
-  CPU 평균 35.07%, 온도 최대 50.15°C, throttling 0을 확인했다.
-- 성능: RGB 3개 topic과 STM32 READ_ONLY bridge 30분 동시 부하에서 CPU 평균
-  7.94%, 온도 최대 40.8°C, `/joint_states` 5.00049 Hz, 카메라 reconnect와
-  heartbeat·feedback 오류, swap, throttling 모두 0
-- simulation: 동일한 왼팔 URDF/Xacro q0 계약, 카메라 장착물, MoveIt mock,
-  Isaac Sim 6.0.1 backend 검증 완료
-- 단계 7 내부 시운전: **100%**. 단, 로드맵의 정식 합격 조건인 50회 중
-  90% 이상 반복 시험은 미실행이므로 검증 매트릭스 상태는 `부분 통과`
-- 현재 분기점: 왼팔 생산 기준선 완성 → 오른팔 단독 동등성 검증 → 양팔
-  통합 순서로 진행
-- 다음 gate: host 계약, STM32 공통 C queue·보간과 dormant command route·확장
-  terminal codec·timing 분석 도구까지 완료했다. 다음은 별도 firmware route
-  연결·Pi–VCP timing 실측, ROS adapter와 제한 실기를 각각 분리해 검증한다.
-  Isaac 정책 학습은 이 결정론적 한팔 기준선 이후에만 재개한다.
-- 확장 방향: 동일한 µrad 관절 규격을 사용해 왼팔 실물, 향후 양팔 실물,
-  Isaac Sim backend를 교체할 수 있게 구성
+전체 진행 경과와 단계별 상세는 [ROADMAP.md](docs/ROADMAP.md)를 우선
+확인한다. 요약:
+
+- **왼팔(생산 기준선)**: firmware `0x00021800` / calibration `0x8AD27897`
+  / capabilities `0x000003FF`. Shoulder P32·Elbow P28로 grasp → 약
+  20 mm lift → Place → release → retreat → q0 복귀를 감독하에 1회
+  완주했다(단계 7 시운전 100%, 정식 50회/90% 반복은 미실행이라
+  `부분 통과`). ROS 2 bridge의 READ_ONLY 차단, MoveIt 표준 Action,
+  fail-closed feedback와 무경고 shutdown을 통과했다.
+- **오른팔**: ID 1~6 방향 실측, `right_arm_bridge` /
+  `so101_right_moveit_config` / `so101_right_isaac_bridge` 패키지 신설,
+  q0/좌표 정합 자동 검증까지 완료했다. `motion_authorized: false`가
+  host·STM32 양쪽에서 실동작을 이중 차단한다. 축별 raw 범위·torque/PID
+  실측이 다음 단계다. 상세: [RIGHT_ARM_PORT_STATUS.md](docs/RIGHT_ARM_PORT_STATUS.md).
+- **카메라**: 3대 MJPEG capture, hot-plug 복구, Top eye-to-hand·table–base
+  등록 통과. 고정 기하 holdout(배경 2종·조명 3종·반사)에서 legacy
+  threshold 검출기는 실패했고, 경량 YOLO-OBB 후보는 miss 0%, false
+  positive 0%로 통과했다. Pi 5에서 3카메라+Top OBB 30분 동시 부하도
+  통과했다(CPU 평균 35.07%, 온도 최대 50.15°C, throttling 0).
+- **Motion**: host 계약(Motion-1), STM32 공통 C queue·보간(Motion-2),
+  dormant command route·timing 분석기(Motion-3)까지 완료했다. 실제
+  G474 route 연결과 Pi–VCP timing 실측이 다음이다.
+- **STM32 프로토콜**: `STATE_FEEDBACK`에 명시적 state가 없는 설계를
+  감사해 누락이 아님을 확인하고 `protocol/README.md`에 문서화했다
+  (2026-08-03).
+- simulation: 왼팔 URDF/Xacro q0 계약, 카메라 장착물, MoveIt mock,
+  Isaac Sim 6.0.1 backend 검증 완료.
+- 통합 순서: **왼팔 생산 기준선 → 오른팔 단독 동등성 → 양팔 통합**.
+  동일한 µrad 관절 규격으로 왼팔 실물, 오른팔 실물, Isaac Sim backend를
+  교체 가능하게 구성했다.
 
 ## 새 개발 환경 준비
 
@@ -114,42 +109,44 @@ cp bridge.local.yaml.example bridge.local.yaml
 
 ## 문서 안내
 
+처음 읽는 순서로 정리했다. 개별 firmware 후보·시험의 원본 증거는 모두
+`docs/test-results/`에 날짜별로 있으며, 그 중 결정적인 항목만
+[PORTFOLIO_LOG.md](docs/PORTFOLIO_LOG.md)가 요약·링크한다.
+
+**현재 상태와 계획**
+
+- [전체 로드맵과 현재 상태](docs/ROADMAP.md) — 지금 어디까지 왔고 다음이 무엇인지
+- [검증 매트릭스](docs/VERIFICATION_MATRIX.md) — 게이트별 통과 상태 한 눈에
+- [포트폴리오 작업 기록](docs/PORTFOLIO_LOG.md) — 날짜순 요약 색인
+- [오른팔 포팅 상태](docs/RIGHT_ARM_PORT_STATUS.md)
 - [프로젝트 헌장](docs/PROJECT_CHARTER.md)
-- [현재 분기점과 남은 로드맵](docs/CURRENT_STATE_AND_NEXT_ROADMAP.md)
-- [전체 로드맵](docs/ROADMAP.md)
-- [하드웨어 인벤토리](docs/HARDWARE_INVENTORY.md)
-- [단계 0 하드웨어 검사](docs/checklists/PHASE_0_HARDWARE_BASELINE.md)
-- [단계 0 측정 데이터](hardware/phase0_baseline.json)
-- [검증 매트릭스](docs/VERIFICATION_MATRIX.md)
-- [포트폴리오 작업 기록](docs/PORTFOLIO_LOG.md)
-- [아키텍처 결정 기록](docs/adr/README.md)
-- [Pi–STM32 통신 규격 초안](protocol/README.md)
+
+**아키텍처 참고**
+
+- [Pi–STM32 통신 규격](protocol/README.md)
 - [Pi 카메라·연산 아키텍처](docs/CAMERA_COMPUTE_ARCHITECTURE.md)
 - [STM32 모듈 구조와 Isaac Sim 확장 경계](docs/STM32_MODULAR_ARCHITECTURE.md)
-- [STM32 단일 팔 실기 체크리스트](docs/checklists/STM32_SINGLE_ARM_BRINGUP.md)
-- [단계 4 왼팔 Isaac Sim·MoveIt 체크리스트](docs/checklists/PHASE_4_ISAAC_MOVEIT_INTEGRATION.md)
-- [단계 4 시험 결과](docs/test-results/2026-07-24-isaac-moveit-left-arm-integration.md)
-- [단계 5 왼팔 hardware backend 체크리스트](docs/checklists/PHASE_5_LEFT_ARM_HARDWARE_BACKEND.md)
-- [단계 5 gripper mapping 측정 계획](docs/checklists/PHASE_5_GRIPPER_MAPPING_PLAN.md)
-- [단계 5 acceptance와 rollback 기준](docs/checklists/PHASE_5_ACCEPTANCE_ROLLBACK.md)
-- [단계 5 STM32 READ_ONLY 실기 결과](docs/test-results/2026-07-25-phase5-stm32-read-only.md)
-- [단계 6 Top 물체 좌표 검증](docs/test-results/2026-07-30-top-object-ground-truth-validation.md)
-- [단계 8 Top 펜 검출 데이터 기준선](docs/checklists/STAGE8_TOP_PEN_DETECTION_BASELINE.md)
-- [단계 8 경량 YOLO-OBB 펜 검출 후보](docs/checklists/STAGE8_TOP_PEN_YOLO_OBB.md)
-- [단계 8 Top 펜 holdout·legacy 결과](docs/test-results/2026-08-02-top-pen-holdout-legacy-baseline.md)
-- [단계 9 Policy ONNX 배포 번들 계약](docs/checklists/STAGE9_POLICY_DEPLOYMENT_BUNDLE.md)
-- [Motion-1 연속 buffered trajectory 계약](docs/checklists/MOTION_BUFFERED_TRAJECTORY_CONTRACT.md)
-- [Motion-2 STM32 buffered queue 후보](docs/checklists/MOTION_STM32_BUFFERED_QUEUE.md)
-- [Motion-3 G474 buffered command route·timing 계약](docs/checklists/MOTION_BUFFERED_COMMAND_ROUTE_TIMING.md)
-- [단계 7 물리 범위 재검증·배포 결과](docs/test-results/2026-07-30-physical-range-revalidation.md)
-- [단계 7 Shoulder 근본 원인과 0x00020E00 후보](docs/test-results/2026-07-30-stage7-shoulder-root-cause-remediation.md)
-- [단계 7 감독형 실제 Pick/Place 1회 완주](docs/test-results/2026-07-31-stage7-supervised-pick-place-complete.md)
-- [0x00020E00 물리 거절: heartbeat RX starvation](docs/test-results/2026-07-31-stm32-0x00020e00-rejected-heartbeat-rx.md)
-- [0x00020F00 acknowledged-heartbeat 후보와 물리 거절](docs/test-results/2026-07-31-stm32-0x00020f00-heartbeat-ack-candidate.md)
-- [0x00021000 interrupt-buffered cooperative-motion 로컬 후보](docs/test-results/2026-07-31-stm32-0x00021000-interrupt-buffered-cooperative-motion-candidate.md)
-- [eye-to-hand 보정 세션 정리 기록](docs/test-results/2026-07-30-top-eye-to-hand-session-cleanup.md)
+- [하드웨어 인벤토리](docs/HARDWARE_INVENTORY.md)
 - [로컬 하드웨어 설정](docs/LOCAL_HARDWARE_CONFIG.md)
-- [제3자 license 고지](THIRD_PARTY_NOTICES.md)
+- [아키텍처 결정 기록(ADR)](docs/adr/README.md)
+
+**단계별 체크리스트** (`docs/checklists/`)
+
+- [단계 0 하드웨어 검사](docs/checklists/PHASE_0_HARDWARE_BASELINE.md) ·
+  [단계 4 Isaac Sim·MoveIt](docs/checklists/PHASE_4_ISAAC_MOVEIT_INTEGRATION.md) ·
+  [단계 5 hardware backend](docs/checklists/PHASE_5_LEFT_ARM_HARDWARE_BACKEND.md)
+- [단계 8 Top 펜 검출/YOLO-OBB](docs/checklists/STAGE8_TOP_PEN_YOLO_OBB.md) ·
+  [단계 9 Policy 배포 번들 계약](docs/checklists/STAGE9_POLICY_DEPLOYMENT_BUNDLE.md)
+- [Motion-1/2/3 buffered trajectory 계약](docs/checklists/MOTION_BUFFERED_TRAJECTORY_CONTRACT.md)
+
+**최근 시험 결과** (전체 목록은 `docs/test-results/`)
+
+- [2026-08-03 STATE_FEEDBACK 계약 감사](docs/test-results/2026-08-03-state-feedback-contract-audit.md)
+- [2026-08-02 오른팔 ID2~6 방향 검증](docs/test-results/2026-08-02-right-arm-id-directions.md)
+- [2026-07-31 감독형 실제 Pick/Place 완주](docs/test-results/2026-07-31-stage7-supervised-pick-place-complete.md)
+
+기타: [단계 0 측정 데이터](hardware/phase0_baseline.json) ·
+[제3자 license 고지](THIRD_PARTY_NOTICES.md)
 
 ## 저장소 구조
 
@@ -157,13 +154,17 @@ cp bridge.local.yaml.example bridge.local.yaml
 Manipulation/
 ├── docs/
 ├── protocol/
-├── firmware/stm32_actuator/          # 플랫폼 독립 C core
-├── firmware/stm32_g474_single_arm/   # CubeIDE board project
-├── ros2_ws/src/single_arm_bridge/    # Pi binary transport와 ROS 2 bridge
-├── ros2_ws/src/so101_description/    # 왼팔 URDF/Xacro와 mesh
-├── ros2_ws/src/so101_moveit_config/  # SRDF, planning, controller contract
+├── firmware/stm32_actuator/          # 플랫폼 독립 C core (좌우 공용)
+├── firmware/stm32_g474_single_arm/   # 왼팔 CubeIDE board project
+├── firmware/stm32_g474_right_arm/    # 오른팔 CubeIDE board project
+├── ros2_ws/src/single_arm_bridge/    # 왼팔 Pi binary transport와 ROS 2 bridge
+├── ros2_ws/src/right_arm_bridge/     # 오른팔 Pi binary transport와 ROS 2 bridge
+├── ros2_ws/src/so101_description/    # 좌우 URDF/Xacro와 mesh
+├── ros2_ws/src/so101_moveit_config/  # 왼팔 SRDF, planning, controller contract
+├── ros2_ws/src/so101_right_moveit_config/ # 오른팔 SRDF, planning, controller contract
 ├── ros2_ws/src/so101_bringup/        # mock/Isaac/STM32 통합 launch
-├── ros2_ws/src/so101_isaac_bridge/   # MoveIt ↔ Isaac adapter
+├── ros2_ws/src/so101_isaac_bridge/   # 왼팔 MoveIt ↔ Isaac adapter
+├── ros2_ws/src/so101_right_isaac_bridge/ # 오른팔 MoveIt ↔ Isaac adapter
 ├── ros2_ws/src/manipulation_camera_manager/ # V4L2 capture와 phase scheduler
 ├── isaac_sim/assets/                 # 검증된 Isaac Sim 6.0.1 stage
 ├── config/

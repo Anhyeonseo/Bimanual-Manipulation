@@ -42,7 +42,7 @@
 | TASK-002 | 단계 7 | Place | 50회 중 90% 이상 | 부분 통과 | [전체 Pick/Place plan-only](test-results/2026-07-31-stage7-full-pick-place-plan-only.md) 및 [감독형 실제 Pick/Place 1회 완주](test-results/2026-07-31-stage7-supervised-pick-place-complete.md): Place·release·retreat·q0 복귀 성공. 수동 Z 보정이 있었고 50회 반복은 미실행 |
 | SYS-001 | 단계 9 | 부팅 | 반복 부팅 모두 무동작 STANDBY | 미실행 |  |
 | SYS-002 | 단계 9 | 장시간 시험 | 8시간 후 24시간 | 미실행 |  |
-| RIGHT-001 | 단계 10 | 오른팔 단독 하드웨어·모델·안전 동등성 | 6축 identity/calibration, q0/FK, READ_ONLY, 무동작, 격리 이동과 fault gate 통과 | 부분 통과 | 사용자가 오른팔 정상 동작을 확인했으나 저장소의 정식 parity 증거는 미수집 |
+| RIGHT-001 | 단계 10 | 오른팔 단독 하드웨어·모델·안전 동등성 | 6축 identity/calibration, q0/FK, READ_ONLY, 무동작, 격리 이동과 fault gate 통과 | 부분 통과 | ID 1~6 방향 실측과 `right_arm_bridge`/`so101_right_moveit_config`/`so101_right_isaac_bridge` 신규 패키지, q0/좌표 정합 자동 검증([RIGHT_ARM_PORT_STATUS.md](RIGHT_ARM_PORT_STATUS.md))까지 완료. 축별 raw 범위·torque/PID·READ_ONLY 이후 단계는 미실측 |
 | RIGHT-002 | 단계 10 | 오른팔 단독 Pick/Place | 왼팔과 동일한 반복성·비명령 동작·충돌 기준 통과 | 미실행 |  |
 | DUAL-001 | 단계 11 | 실제 시작 시각 차이 | 측정값과 기준 기록 | 미실행 |  |
 | DUAL-002 | 단계 11 | 연동 정지 | 한 팔 fault 시 양팔 정지 | 미실행 |  |

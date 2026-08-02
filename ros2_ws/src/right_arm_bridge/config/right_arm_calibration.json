@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "arm_slot": "right",
+  "raw_units_per_turn": 4096,
+  "turn_urad": 6283185,
+  "home_definition": "verified folded physical home; every actuator reports raw 2048",
+  "motion_authorized": false,
+  "calibration_status": "provisional upstream envelope; ID1-ID6 directions verified, all operating ranges (minimum/maximum raw, gains, torque limits) still require right-arm measurement",
+  "positive_direction_definition": "positive joint direction; ID1 raw increase is clockwise viewed from above, ID2 raw increase moves the arm forward, ID3 raw increase moves the forearm/wrist end downward, ID4 raw increase flexes the wrist downward, ID5 raw increase is counterclockwise viewed from the elbow side toward the gripper, ID6 raw increase opens the gripper",
+  "joints": [
+    {"id": 1, "name": "BASE",       "zero_raw": 2048, "minimum_raw": 2048, "maximum_raw": 2610, "positive_raw_direction":  1, "p_gain": 16, "direction_verified": true},
+    {"id": 2, "name": "SHOULDER",   "zero_raw": 2048, "minimum_raw": 1988, "maximum_raw": 3766, "positive_raw_direction":  1, "p_gain": 32, "direction_verified": true, "raw_increase_observation": "forward"},
+    {"id": 3, "name": "ELBOW",      "zero_raw": 2048, "minimum_raw": 627, "maximum_raw": 2258, "positive_raw_direction": -1, "p_gain": 28, "direction_verified": true, "raw_increase_observation": "forearm/wrist end moves downward"},
+    {"id": 4, "name": "WRIST_FLEX", "zero_raw": 2048, "minimum_raw": 1194, "maximum_raw": 2048, "positive_raw_direction": -1, "p_gain": 16, "direction_verified": true, "raw_increase_observation": "wrist flexes downward (observed as raw decrease moving the wrist up)"},
+    {"id": 5, "name": "WRIST_ROLL", "zero_raw": 2048, "minimum_raw": 1874, "maximum_raw": 2219, "positive_raw_direction":  1, "p_gain": 16, "direction_verified": true, "raw_increase_observation": "counterclockwise viewed from the elbow side toward the gripper"},
+    {"id": 6, "name": "GRIPPER",    "zero_raw": 2048, "minimum_raw": 1866, "maximum_raw": 2048, "positive_raw_direction": -1, "p_gain": 16, "direction_verified": true, "raw_increase_observation": "gripper opens (observed as raw decrease closing the moving jaw)"}
+  ]
+}

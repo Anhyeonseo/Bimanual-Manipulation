@@ -3,6 +3,7 @@
   "arm_slot": "left",
   "raw_units_per_turn": 4096,
   "turn_urad": 6283185,
+  "motion_authorized": true,
   "joints": [
     {"id": 1, "name": "BASE",       "zero_raw": 2048, "minimum_raw": 2048, "maximum_raw": 2610, "positive_raw_direction":  1, "p_gain": 16},
     {"id": 2, "name": "SHOULDER",   "zero_raw": 2048, "minimum_raw": 1988, "maximum_raw": 3766, "positive_raw_direction":  1, "p_gain": 32},

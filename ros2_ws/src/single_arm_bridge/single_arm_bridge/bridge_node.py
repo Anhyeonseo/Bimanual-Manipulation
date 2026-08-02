@@ -89,6 +89,11 @@ class SingleArmBridge(Node):
                 str(self.get_parameter("serial_device").value)
             )
             self._calibration = load_calibration(calibration_file)
+            if self._allow_motion and not self._calibration.motion_authorized:
+                raise RuntimeError(
+                    f"{self._calibration.arm_slot}-arm calibration has not "
+                    "authorized physical motion"
+                )
 
             import serial
 

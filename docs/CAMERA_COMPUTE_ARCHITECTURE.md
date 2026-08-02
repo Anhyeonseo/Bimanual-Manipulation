@@ -266,26 +266,22 @@ Policy 또는 인식 결과가 정해진 처리 시간을 넘기면 오래된 �
 
 각 단계에서 frame이 지난 시간, decode 및 추론 시간의 p50/p95/최댓값, CPU, memory, 온도, USB reset 횟수와 heartbeat 최대 간격을 기록한다.
 
-## 12. 2026-08-01 현재 관측과 다음 계측
+## 12. 재현성 범위와 현재 계측 상태
 
-이 절의 시연 재현성 범위는 카메라 각도·높이, 작업대–base transform과
-물체 Z가 고정된 상태다. 장소 이동으로 달라질 수 있는 배경, 주변 조명,
-반사와 노출 변화에 대해서 검출·정렬 성능을 유지하는지를 검증한다.
-mount 또는 물체 높이가 바뀌면 재현성 시험이 아니라 재보정 gate로 전환한다.
+시연 재현성은 카메라 각도·높이, 작업대–base transform과 물체 Z를 고정한
+채 배경·조명·반사만 다른 환경에서도 같은 검출·정렬 성능을 내는 것을
+뜻한다. mount나 물체 높이가 실제로 바뀌면 재현성 시험이 아니라 재보정
+gate로 전환한다.
 
-- 재배치한 Top 카메라의 `640×480 rgb8` frame 저장과 sharpness `87.93`을
-  확인했고, 펜은 사람 눈으로 명확히 보였다.
-- 같은 장면에서 기존 threshold 기반 검출은 대리석 무늬와 반사 때문에
-  `detected 2 (ignored 2 fully outside)`로 fail-closed 됐다. 카메라 송출
-  문제가 아니라 검출기 일반화 문제로 분리한다.
-- 다음 구현은 먼저 로봇을 움직이지 않고 Top+양 손목 capture, 선택 decode,
-  후보 검출기와 실제 policy ONNX를 함께 구동해 Pi 5 자원 기준선을 잰다.
-- `tools/pi_runtime_resource_baseline.py`와 진단 전용
-  `RUNTIME_BASELINE` phase를 추가했다. 카메라-only 계측은 즉시 가능하며,
-  실제 ONNX bundle이 들어오면 동일 도구의 `--require-policy` gate로
-  `config/policy_shadow_diagnostics_contract.json` 계약까지 함께 검증한다.
-- 기록 항목은 카메라별 frame age, decode/detector/policy p50·p95·max,
-  전체·process별 CPU와 RSS, 온도/throttling, USB reset, serial RTT와
-  heartbeat 최대 간격이다.
-- 이 기준선이 통과하기 전에는 세 카메라의 동시 full-frame inference,
-  policy 실제 명령 권한, 양팔 통합을 허용하지 않는다.
+`tools/pi_runtime_resource_baseline.py`와 진단 전용 `RUNTIME_BASELINE`
+phase로 카메라별 frame age, decode/detector/policy p50·p95·max,
+CPU/RSS/온도/throttling, USB reset, heartbeat 최대 간격을 계측한다.
+실제 ONNX bundle이 들어오면 같은 도구의 `--require-policy` gate로
+`config/policy_shadow_diagnostics_contract.json` 계약까지 검증한다.
+
+카메라-only와 Top-OBB 포함 3카메라 30분 동시 부하는 통과했다(자원
+목표 충족, heartbeat/decode 오류 0). policy shadow·8시간 soak·재부팅
+반복은 아직이며, 통과 전에는 세 카메라 동시 full-frame inference와
+policy 실제 명령 권한, 양팔 통합을 허용하지 않는다. 진행 경과는
+[ROADMAP.md](ROADMAP.md)(단계 9)와
+[PORTFOLIO_LOG.md](PORTFOLIO_LOG.md)를 따른다.

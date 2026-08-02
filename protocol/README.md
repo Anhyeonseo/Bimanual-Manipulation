@@ -279,6 +279,32 @@ BOOT
 
 전원 인가, VCP 재연결 또는 Pi process 재시작만으로 `ACTIVE` 상태가 되지 않는다.
 
+### Host가 상태를 확인하는 방법
+
+`STATE_FEEDBACK`(id 49)은 `HEARTBEAT`/`GET_STATE`/`ENABLE`/`HOLD`/`SAFE_STOP`/
+`DISABLE`/`CLEAR_FAULT`의 공통 응답이지만 20-byte payload에
+`stop_latched`와 `status_code`만 있고 이 state 머신의 값(`SAFE_DISABLED`/
+`ARMED`/`ACTIVE`/`HOLD`/`FAULT`/`ESTOPPED`)을 담는 byte는 없다. 이는 누락이
+아니라 설계 의도이며, host는 다음 두 곳에서만 원시 state 값을 직접 받는다.
+
+- `ARM_RESPONSE`(id 17): `payload[1]`이 `actuator_state_t` 값이며, host는
+  `state == ARMED(2)`인지 직접 확인한다.
+- `SETPOINT_STATUS`(id 33): `payload[2]`가 같은 `actuator_state_t` 값이며
+  Python에서는 `MotionResult.safety_state`로 노출된다.
+
+그 외 전이는 `STATE_FEEDBACK`의 다른 필드로 간접 확인한다.
+
+- `ENABLE` 성공(=`ACTIVE` 진입)은 `status_code == 0`이고 `stop_latched ==
+  false`일 때로만 판단한다. `ENABLE` 응답 자체가 `ACTIVE`를 직접 반환하지
+  않는다.
+- `SAFE_STOP`/timeout으로 인한 `HOLD` 진입은 `stop_latched == true`로
+  확인한다.
+
+모든 응답에 state를 직접 노출하는 개선은 가능하지만 Phase 2 Python/ROS
+계약을 동시에 바꿔야 하므로 별도 항목으로 남겨둔다. 세부 대조 근거는
+[2026-08-03-state-feedback-contract-audit.md](../docs/test-results/2026-08-03-state-feedback-contract-audit.md)에
+있다.
+
 ## 8. 정지 명령 구분
 
 - `HOLD`: 계획된 일시 정지 또는 짧은 통신 이상

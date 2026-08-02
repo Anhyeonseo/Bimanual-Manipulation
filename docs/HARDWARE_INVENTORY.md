@@ -30,6 +30,22 @@
 | Raw 위치 범위 | 단일 시험 팔의 보수적 범위 적용 | 확정 | 양팔 통합 전 왼팔 별도 확인 |
 | Feedback 항목 | position/speed/load/voltage 확인 | 확정 | 단일 시험 팔 ID 1~6 실기 검증 |
 
+## 오른팔 개별 확인 사항
+
+오른팔은 [ADR-0008](adr/0008-left-arm-first.md)에 따라 왼팔과 독립적으로
+검증한다. 세부 진행 상황은 [RIGHT_ARM_PORT_STATUS.md](RIGHT_ARM_PORT_STATUS.md)를
+기준으로 한다.
+
+| 항목 | 값 | 상태 | 증거/비고 |
+|---|---|---|---|
+| 서보 ID 매핑 | 1 BASE, 2 SHOULDER, 3 ELBOW, 4 WRIST_FLEX, 5 WRIST_ROLL, 6 GRIPPER | 확정 | 노트북 + NUCLEO-G474RE + Waveshare Bus Servo Adapter (A)로 실기 확인 |
+| 관절 원점 | 전 축 home raw 2048 | 확정 | 실기 확인 |
+| ID 1~6 방향 | 전 축 raw 증가 방향 확인 | 확정 | `docs/test-results/2026-08-02-right-arm-id-directions.md` |
+| Raw 위치 범위(축별 min/max) | 왼팔 값을 잠정 upstream envelope로만 사용 | 측정 필요 | 오른팔 실측 전; `motion_authorized: false`로 이중 잠금 |
+| P gain / torque limit | 왼팔 값을 잠정 사용 | 측정 필요 | 오른팔 실측 전 |
+| STM32 펌웨어 | `firmware/stm32_g474_right_arm`, 현재 calibration 모드로 플래시 | 확정 | `RIGHT_ARM_CALIBRATION_MODE=1U`, `RIGHT_ARM_MOTION_AUTHORIZED=0U` |
+| 상위 제어기 | 노트북(Pi 아직 미연결) | 확정 | Raspberry Pi/카메라 통합은 이후 단계 |
+
 ## 전원과 서보 버스
 
 | 항목 | 값 | 상태 | 증거/비고 |
